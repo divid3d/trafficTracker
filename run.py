@@ -5,12 +5,13 @@ import numpy as np
 import time
 
 resizedX, resizedY = 416, 416
+confidance = .50
 inputs = tf.placeholder(tf.float32, [None, resizedX, resizedY, 3])
 model = nets.YOLOv3COCO(inputs, nets.Darknet19)
 
 # to display other detected #objects,change the classes and list of classes to their respective #COCO indices available in their website. Here 0th index is for #people and 1 for bicycle and so on. If you want to detect all the #classes, add the indices to this list
 classes = {'2': 'car', '5': 'bus', '7': 'truck'}
-colors = [(255, 0, 0),(0, 255, 0), (0, 0, 255)]
+colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
 list_of_classes = [2, 5,
                    7]
 with tf.Session() as sess:
@@ -45,8 +46,8 @@ with tf.Session() as sess:
                 # iterate over detected vehicles
                 for i in range(len(boxes1[j])):
                     box = boxes1[j][i]
-                    # setting confidence threshold as 40%
-                    if boxes1[j][i][4] >= .40:
+                    # setting confidence threshold
+                    if boxes1[j][i][4] >= confidance:
                         count += 1
 
                         box[0] = box[0] * scaleFactorX
@@ -54,12 +55,17 @@ with tf.Session() as sess:
                         box[2] = box[2] * scaleFactorX
                         box[3] = box[3] * scaleFactorY
 
+                        classColor = (255, 255, 255)
                         if classes[str(j)] == 'car':
-                            cv2.rectangle(frame, (box[0], box[1]), (box[2], box[3]), colors[0], 2)
+                            classColor = colors[0]
                         elif classes[str(j)] == 'bus':
-                            cv2.rectangle(frame, (box[0], box[1]), (box[2], box[3]), colors[1], 2)
+                            classColor = colors[1]
                         else:
-                            cv2.rectangle(frame, (box[0], box[1]), (box[2], box[3]), colors[2], 2)
+                            classColor = colors[2]
+
+                        cv2.rectangle(frame, (box[0], box[1]), (box[2], box[3]), classColor, 2)
+                        boxCenterX, boxCenterY = box[0] + ((box[2] - box[0]) / 2), box[1] + ((box[3] - box[1]) / 2)
+                        cv2.circle(frame, (int(boxCenterX), int(boxCenterY)), 3, classColor, -1)
 
                         cv2.putText(frame, lab, (box[0], box[1]), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255),
                                     lineType=cv2.LINE_AA)
