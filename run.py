@@ -1,19 +1,22 @@
 import tensorflow as tf
 import tensornets as nets
 import cv2
-import numpy as np
 import time
+from sort import *
 
 resizedX, resizedY = 416, 416
 confidance = .50
 inputs = tf.placeholder(tf.float32, [None, resizedX, resizedY, 3])
 model = nets.YOLOv3COCO(inputs, nets.Darknet19)
+frameCounter = 0
 
 # to display other detected #objects,change the classes and list of classes to their respective #COCO indices available in their website. Here 0th index is for #people and 1 for bicycle and so on. If you want to detect all the #classes, add the indices to this list
 classes = {'2': 'car', '5': 'bus', '7': 'truck'}
 colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
 list_of_classes = [2, 5,
                    7]
+detections = []
+mot_tracker = Sort()
 with tf.Session() as sess:
     sess.run(model.pretrained())
 
@@ -38,6 +41,7 @@ with tf.Session() as sess:
         cv2.resizeWindow('image', frameWidth, frameHeight)
 
         boxes1 = np.array(boxes)
+        detections.clear()
         for j in list_of_classes:  # iterate over classes
             count = 0
             if str(j) in classes:
@@ -49,7 +53,7 @@ with tf.Session() as sess:
                     # setting confidence threshold
                     if boxes1[j][i][4] >= confidance:
                         count += 1
-
+                        detections.append([box[0], box[1], box[2], box[3]])
                         box[0] = box[0] * scaleFactorX
                         box[1] = box[1] * scaleFactorY
                         box[2] = box[2] * scaleFactorX
@@ -70,9 +74,16 @@ with tf.Session() as sess:
                         cv2.putText(frame, lab, (box[0], box[1]), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255),
                                     lineType=cv2.LINE_AA)
             print(lab, ": ", count)
+            trackers = mot_tracker.update(np.array(detections))
+            for d in trackers:
+                cv2.circle(frame, (int(d[0] + ((d[2] - d[0]) / 2)), int(d[1] + ((d[3] - d[1]) / 2))), 3, classColor, -1)
 
         # Display the output
         cv2.imshow("image", frame)
+
+        path = "C://Users//Divided//Desktop//klatki"
+        cv2.imwrite(cv2.os.path.join(path, str(frameCounter) + ".jpg"), frame)
+        frameCounter += 1
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
