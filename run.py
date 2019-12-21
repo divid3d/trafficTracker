@@ -5,7 +5,7 @@ import time
 from sort import *
 
 resizedX, resizedY = 416, 416
-confidance = .50
+confidance = .65
 inputs = tf.placeholder(tf.float32, [None, resizedX, resizedY, 3])
 model = nets.YOLOv3COCO(inputs, nets.Darknet19)
 frameCounter = 0
@@ -16,11 +16,11 @@ colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
 list_of_classes = [2, 5,
                    7]
 detections = []
-mot_tracker = Sort()
+mot_tracker = Sort(3,3)
 with tf.Session() as sess:
     sess.run(model.pretrained())
 
-    cap = cv2.VideoCapture("C://Users//Divided//Desktop//traffic_detection.mp4")
+    cap = cv2.VideoCapture("C://Users//Divided//Desktop//traffic.mp4")
     # change the path to your directory or to '0' for webcam
     while cap.isOpened():
         ret, frame = cap.read()
@@ -33,8 +33,6 @@ with tf.Session() as sess:
         start_time = time.time()
         preds = sess.run(model.preds, {inputs: model.preprocess(imge)})
 
-        fps = 1 / (time.time() - start_time)
-        print("FPS: %.2f" % fps)  # to time it
         boxes = model.get_boxes(preds, imge.shape[1:3])
         cv2.namedWindow('image', cv2.WINDOW_NORMAL)
 
@@ -53,11 +51,13 @@ with tf.Session() as sess:
                     # setting confidence threshold
                     if boxes1[j][i][4] >= confidance:
                         count += 1
-                        detections.append([box[0], box[1], box[2], box[3]])
+
                         box[0] = box[0] * scaleFactorX
                         box[1] = box[1] * scaleFactorY
                         box[2] = box[2] * scaleFactorX
                         box[3] = box[3] * scaleFactorY
+
+                        detections.append([box[0], box[1], box[2], box[3]])
 
                         classColor = (255, 255, 255)
                         if classes[str(j)] == 'car':
@@ -77,7 +77,10 @@ with tf.Session() as sess:
             trackers = mot_tracker.update(np.array(detections))
             for d in trackers:
                 cv2.circle(frame, (int(d[0] + ((d[2] - d[0]) / 2)), int(d[1] + ((d[3] - d[1]) / 2))), 3, classColor, -1)
+                print(str(d[4]))
 
+        fps = 1 / (time.time() - start_time)
+        print("FPS: %.2f" % fps)  # to time it
         # Display the output
         cv2.imshow("image", frame)
 
