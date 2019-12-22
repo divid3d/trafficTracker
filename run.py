@@ -5,7 +5,7 @@ import time
 from sort import *
 
 resizedX, resizedY = 416, 416
-confidance = .65
+confidance = .3
 inputs = tf.placeholder(tf.float32, [None, resizedX, resizedY, 3])
 model = nets.YOLOv3COCO(inputs, nets.Darknet19)
 frameCounter = 0
@@ -16,11 +16,11 @@ colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
 list_of_classes = [2, 5,
                    7]
 detections = []
-mot_tracker = Sort(3,3)
+mot_tracker = Sort(10,5)
 with tf.Session() as sess:
     sess.run(model.pretrained())
 
-    cap = cv2.VideoCapture("C://Users//Divided//Desktop//traffic.mp4")
+    cap = cv2.VideoCapture("C://Users//Divided//Desktop//traffic_test.mp4")
     # change the path to your directory or to '0' for webcam
     while cap.isOpened():
         ret, frame = cap.read()
@@ -67,26 +67,46 @@ with tf.Session() as sess:
                         else:
                             classColor = colors[2]
 
-                        cv2.rectangle(frame, (box[0], box[1]), (box[2], box[3]), classColor, 2)
-                        boxCenterX, boxCenterY = box[0] + ((box[2] - box[0]) / 2), box[1] + ((box[3] - box[1]) / 2)
-                        cv2.circle(frame, (int(boxCenterX), int(boxCenterY)), 3, classColor, -1)
-
-                        cv2.putText(frame, lab, (box[0], box[1]), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255),
-                                    lineType=cv2.LINE_AA)
+                        # cv2.rectangle(frame, (box[0], box[1]), (box[2], box[3]), classColor, 2)
+                        # boxCenterX, boxCenterY = box[0] + ((box[2] - box[0]) / 2), box[1] + ((box[3] - box[1]) / 2)
+                        # cv2.circle(frame, (int(boxCenterX), int(boxCenterY)), 3, classColor, -1)
+                        #
+                        # cv2.putText(frame, lab, (box[0], box[1]), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255),
+                        #             lineType=cv2.LINE_AA)
             print(lab, ": ", count)
             trackers = mot_tracker.update(np.array(detections))
-            for d in trackers:
-                cv2.circle(frame, (int(d[0] + ((d[2] - d[0]) / 2)), int(d[1] + ((d[3] - d[1]) / 2))), 3, classColor, -1)
-                print(str(d[4]))
+            # for d in trackers:
+            #     cv2.circle(frame, (int(d[0] + ((d[2] - d[0]) / 2)), int(d[1] + ((d[3] - d[1]) / 2))), 3, classColor, -1)
+            #     print(str(d[4]))
+
+            trackerObjects = mot_tracker.trackers
+            for t in trackerObjects:
+                history = t.history
+                pts  = []
+                for historyEntry in history:
+                    # cv2.circle(frame, (
+                    #     int(historyEntry[0][0] + ((historyEntry[0][2] - historyEntry[0][0]) / 2)),
+                    #     int(historyEntry[0][1] + ((historyEntry[0][3] - historyEntry[0][1]) / 2))), 3, t.color,
+                    #            -1)
+                    pts.append([int(historyEntry[0][0] + ((historyEntry[0][2] - historyEntry[0][0]) / 2)),int(historyEntry[0][1] + ((historyEntry[0][3] - historyEntry[0][1]) / 2))])
+
+                if len(history) > 0:
+                    cv2.rectangle(frame, (int(history[-1][0][0]), int(history[-1][0][1])),
+                                  (int(history[-1][0][2]), int(history[-1][0][3])), t.color, 1)
+                    cv2.putText(frame, str(t.id), (int(history[-1][0][0]), int(history[-1][0][1])), cv2.FONT_HERSHEY_SIMPLEX, 0.3,
+                                (255, 255, 255),
+                                lineType=cv2.LINE_AA)
+                    pts = np.asarray(pts).reshape((-1, 1, 2))
+                    cv2.polylines(frame, [pts], False, t.color, 1, cv2.LINE_AA)
 
         fps = 1 / (time.time() - start_time)
         print("FPS: %.2f" % fps)  # to time it
         # Display the output
         cv2.imshow("image", frame)
 
-        path = "C://Users//Divided//Desktop//klatki"
-        cv2.imwrite(cv2.os.path.join(path, str(frameCounter) + ".jpg"), frame)
-        frameCounter += 1
+        # path = "C://Users//Divided//Desktop//klatki"
+        # cv2.imwrite(cv2.os.path.join(path, str(frameCounter) + ".jpg"), frame)
+        # frameCounter += 1
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break

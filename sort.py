@@ -4,7 +4,7 @@ from numba import jit
 import numpy as np
 from sklearn.utils.linear_assignment_ import linear_assignment
 from filterpy.kalman import KalmanFilter
-
+import random
 
 @jit
 def iou(bb_test, bb_gt):
@@ -22,6 +22,9 @@ def iou(bb_test, bb_gt):
               + (bb_gt[2] - bb_gt[0]) * (bb_gt[3] - bb_gt[1]) - wh)
     return (o)
 
+def get_random_color():
+    return random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)
+
 
 def convert_bbox_to_z(bbox):
     """
@@ -34,6 +37,7 @@ def convert_bbox_to_z(bbox):
     x = bbox[0] + w / 2.
     y = bbox[1] + h / 2.
     s = w * h  # scale is just area
+    r = w / float(h)
     r = w / float(h)
     return np.array([x, y, s, r]).reshape((4, 1))
 
@@ -83,13 +87,16 @@ class KalmanBoxTracker(object):
         self.hits = 0
         self.hit_streak = 0
         self.age = 0
+        self.color = get_random_color()
 
     def update(self, bbox):
         """
         Updates the state vector with observed bbox.
         """
         self.time_since_update = 0
-        self.history = []
+        #self.history = []
+        if len(self.history) >= 25:
+            self.history = self.history[1:]
         self.hits += 1
         self.hit_streak += 1
         self.kf.update(convert_bbox_to_z(bbox))
@@ -107,7 +114,6 @@ class KalmanBoxTracker(object):
         self.time_since_update += 1
         self.history.append(convert_x_to_bbox(self.kf.x))
         return self.history[-1]
-
     def get_state(self):
         """
         Returns the current bounding box estimate.
