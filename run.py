@@ -15,8 +15,8 @@ classes = {'2': 'car', '5': 'bus', '7': 'truck'}
 colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
 list_of_classes = [2, 5,
                    7]
-detections = []
-mot_tracker = Sort(10,5)
+
+mot_tracker = Sort()
 with tf.Session() as sess:
     sess.run(model.pretrained())
 
@@ -39,7 +39,7 @@ with tf.Session() as sess:
         cv2.resizeWindow('image', frameWidth, frameHeight)
 
         boxes1 = np.array(boxes)
-        detections.clear()
+        detections = []
         for j in list_of_classes:  # iterate over classes
             count = 0
             if str(j) in classes:
@@ -58,15 +58,14 @@ with tf.Session() as sess:
                         box[3] = box[3] * scaleFactorY
 
                         detections.append([box[0], box[1], box[2], box[3]])
-
-                        classColor = (255, 255, 255)
-                        if classes[str(j)] == 'car':
-                            classColor = colors[0]
-                        elif classes[str(j)] == 'bus':
-                            classColor = colors[1]
-                        else:
-                            classColor = colors[2]
-
+                        # classColor = (255, 255, 255)
+                        # if classes[str(j)] == 'car':
+                        #     classColor = colors[0]
+                        # elif classes[str(j)] == 'bus':
+                        #     classColor = colors[1]
+                        # else:
+                        #     classColor = colors[2]
+                        #
                         # cv2.rectangle(frame, (box[0], box[1]), (box[2], box[3]), classColor, 2)
                         # boxCenterX, boxCenterY = box[0] + ((box[2] - box[0]) / 2), box[1] + ((box[3] - box[1]) / 2)
                         # cv2.circle(frame, (int(boxCenterX), int(boxCenterY)), 3, classColor, -1)
@@ -78,26 +77,29 @@ with tf.Session() as sess:
             # for d in trackers:
             #     cv2.circle(frame, (int(d[0] + ((d[2] - d[0]) / 2)), int(d[1] + ((d[3] - d[1]) / 2))), 3, classColor, -1)
             #     print(str(d[4]))
-
             trackerObjects = mot_tracker.trackers
             for t in trackerObjects:
-                history = t.history
-                pts  = []
-                for historyEntry in history:
+                historyCenterPoints = []
+                for historyEntry in t.history:
                     # cv2.circle(frame, (
                     #     int(historyEntry[0][0] + ((historyEntry[0][2] - historyEntry[0][0]) / 2)),
                     #     int(historyEntry[0][1] + ((historyEntry[0][3] - historyEntry[0][1]) / 2))), 3, t.color,
                     #            -1)
-                    pts.append([int(historyEntry[0][0] + ((historyEntry[0][2] - historyEntry[0][0]) / 2)),int(historyEntry[0][1] + ((historyEntry[0][3] - historyEntry[0][1]) / 2))])
+                    historyCenterPoints.append(
+                        [int(historyEntry[0][0] + ((historyEntry[0][2] - historyEntry[0][0]) / 2)),
+                         int(historyEntry[0][1] + ((historyEntry[0][3] - historyEntry[0][1]) / 2))])
 
-                if len(history) > 0:
-                    cv2.rectangle(frame, (int(history[-1][0][0]), int(history[-1][0][1])),
-                                  (int(history[-1][0][2]), int(history[-1][0][3])), t.color, 1)
-                    cv2.putText(frame, str(t.id), (int(history[-1][0][0]), int(history[-1][0][1])), cv2.FONT_HERSHEY_SIMPLEX, 0.3,
+                if len(historyCenterPoints) > 0:
+                    cv2.putText(frame, str(t.id), (int(t.history[-1][0][0]), int(t.history[-1][0][1])),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.3,
                                 (255, 255, 255),
                                 lineType=cv2.LINE_AA)
-                    pts = np.asarray(pts).reshape((-1, 1, 2))
-                    cv2.polylines(frame, [pts], False, t.color, 1, cv2.LINE_AA)
+                    historyCenterPoints = np.asarray(historyCenterPoints).reshape((-1, 1, 2))
+                    cv2.polylines(frame, [historyCenterPoints], False, t.color, 1, cv2.LINE_AA)
+
+                if len(t.history) > 0:
+                    cv2.rectangle(frame, (int(t.history[-1][0][0]), int(t.history[-1][0][1])),
+                                  (int(t.history[-1][0][2]), int(t.history[-1][0][3])), t.color, 1)
 
         fps = 1 / (time.time() - start_time)
         print("FPS: %.2f" % fps)  # to time it
