@@ -5,7 +5,7 @@ import random
 import numpy as np
 from filterpy.kalman import KalmanFilter
 from numba import jit
-from sklearn.utils.linear_assignment_ import linear_assignment
+from scipy.optimize import linear_sum_assignment
 
 
 @jit
@@ -99,10 +99,9 @@ class KalmanBoxTracker(object):
         """
         self.time_since_update = 0
         # self.history = []
-        if len(self.history) >= 25:
+        if len(self.history) >= 50:
             self.history = self.history[1:]
-
-        if len(self.centroidHistory) >= 25:
+        if len(self.centroidHistory) >= 50:
             self.centroidHistory = self.centroidHistory[1:]
 
         self.hits += 1
@@ -145,7 +144,9 @@ def associate_detections_to_trackers(detections, trackers, iou_threshold=0.3):
     for d, det in enumerate(detections):
         for t, trk in enumerate(trackers):
             iou_matrix[d, t] = iou(det, trk)
-    matched_indices = linear_assignment(-iou_matrix)
+    matched_indices = linear_sum_assignment(-iou_matrix)
+    matched_indices = np.asarray(matched_indices)
+    matched_indices = np.transpose(matched_indices)
 
     unmatched_detections = []
     for d, det in enumerate(detections):
@@ -173,7 +174,7 @@ def associate_detections_to_trackers(detections, trackers, iou_threshold=0.3):
 
 
 class Sort(object):
-    def __init__(self, max_age=1, min_hits=3):
+    def __init__(self, max_age=1, min_hits=3, max_history = None,):
         """
         Sets key parameters for SORT
         """
