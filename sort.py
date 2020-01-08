@@ -1,10 +1,12 @@
 from __future__ import print_function
 
-from numba import jit
-import numpy as np
-from sklearn.utils.linear_assignment_ import linear_assignment
-from filterpy.kalman import KalmanFilter
 import random
+
+import numpy as np
+from filterpy.kalman import KalmanFilter
+from numba import jit
+from sklearn.utils.linear_assignment_ import linear_assignment
+
 
 @jit
 def iou(bb_test, bb_gt):
@@ -21,6 +23,7 @@ def iou(bb_test, bb_gt):
     o = wh / ((bb_test[2] - bb_test[0]) * (bb_test[3] - bb_test[1])
               + (bb_gt[2] - bb_gt[0]) * (bb_gt[3] - bb_gt[1]) - wh)
     return (o)
+
 
 def get_random_color():
     return random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)
@@ -84,6 +87,7 @@ class KalmanBoxTracker(object):
         self.id = KalmanBoxTracker.count
         KalmanBoxTracker.count += 1
         self.history = []
+        self.centroidHistory = []
         self.hits = 0
         self.hit_streak = 0
         self.age = 0
@@ -94,9 +98,13 @@ class KalmanBoxTracker(object):
         Updates the state vector with observed bbox.
         """
         self.time_since_update = 0
-        #self.history = []
+        # self.history = []
         if len(self.history) >= 25:
             self.history = self.history[1:]
+
+        if len(self.centroidHistory) >= 25:
+            self.centroidHistory = self.centroidHistory[1:]
+
         self.hits += 1
         self.hit_streak += 1
         self.kf.update(convert_bbox_to_z(bbox))
@@ -109,11 +117,14 @@ class KalmanBoxTracker(object):
             self.kf.x[6] *= 0.0
         self.kf.predict()
         self.age += 1
-        if (self.time_since_update > 0):
+        if self.time_since_update > 0:
             self.hit_streak = 0
         self.time_since_update += 1
-        self.history.append(convert_x_to_bbox(self.kf.x))
+        historyEntry = convert_x_to_bbox(self.kf.x)
+        self.history.append(historyEntry)
+        self.centroidHistory.append([self.kf.x[0], self.kf.x[1]])
         return self.history[-1]
+
     def get_state(self):
         """
         Returns the current bounding box estimate.

@@ -1,7 +1,9 @@
+import time
+
+import cv2
 import tensorflow as tf
 import tensornets as nets
-import cv2
-import time
+
 from sort import *
 
 resizedX, resizedY = 416, 416
@@ -11,16 +13,15 @@ model = nets.YOLOv3COCO(inputs, nets.Darknet19)
 frameCounter = 0
 
 # to display other detected #objects,change the classes and list of classes to their respective #COCO indices available in their website. Here 0th index is for #people and 1 for bicycle and so on. If you want to detect all the #classes, add the indices to this list
-classes = {'2': 'car', '5': 'bus', '7': 'truck'}
-colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
-list_of_classes = [2, 5,
-                   7]
+classes = {'1': 'bicycle', '2': 'car', '3': 'motorcycle', '5': 'bus', '7': 'truck'}
+# colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
+list_of_classes = [1, 2, 3, 5, 7]
 
-mot_tracker = Sort()
+mot_tracker = Sort(max_age=10, min_hits=4)
 with tf.Session() as sess:
     sess.run(model.pretrained())
 
-    cap = cv2.VideoCapture("C://Users//Divided//Desktop//traffic_test.mp4")
+    cap = cv2.VideoCapture("C://Users//Divided//Desktop//traffic_test_1.mp4")
     # change the path to your directory or to '0' for webcam
     while cap.isOpened():
         ret, frame = cap.read()
@@ -79,23 +80,13 @@ with tf.Session() as sess:
             #     print(str(d[4]))
             trackerObjects = mot_tracker.trackers
             for t in trackerObjects:
-                historyCenterPoints = []
-                for historyEntry in t.history:
-                    # cv2.circle(frame, (
-                    #     int(historyEntry[0][0] + ((historyEntry[0][2] - historyEntry[0][0]) / 2)),
-                    #     int(historyEntry[0][1] + ((historyEntry[0][3] - historyEntry[0][1]) / 2))), 3, t.color,
-                    #            -1)
-                    historyCenterPoints.append(
-                        [int(historyEntry[0][0] + ((historyEntry[0][2] - historyEntry[0][0]) / 2)),
-                         int(historyEntry[0][1] + ((historyEntry[0][3] - historyEntry[0][1]) / 2))])
-
-                if len(historyCenterPoints) > 0:
+                if len(t.centroidHistory) > 0:
                     cv2.putText(frame, str(t.id), (int(t.history[-1][0][0]), int(t.history[-1][0][1])),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.3,
                                 (255, 255, 255),
                                 lineType=cv2.LINE_AA)
-                    historyCenterPoints = np.asarray(historyCenterPoints).reshape((-1, 1, 2))
-                    cv2.polylines(frame, [historyCenterPoints], False, t.color, 1, cv2.LINE_AA)
+                    cv2.polylines(frame, [np.asarray(t.centroidHistory).astype(int).reshape((-1, 1, 2))
+                                          ], False, t.color, 1, cv2.LINE_AA)
 
                 if len(t.history) > 0:
                     cv2.rectangle(frame, (int(t.history[-1][0][0]), int(t.history[-1][0][1])),
