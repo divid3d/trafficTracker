@@ -106,9 +106,9 @@ with tf.Session() as sess:
 
         cv2.imshow("image", frame)
 
-        path = "C://Users//Divided//Desktop//klatki"
-        cv2.imwrite(cv2.os.path.join(path, str(frameCounter) + ".jpg"), frame)
-        frameCounter += 1
+        #path = "C://Users//Divided//Desktop//klatki"
+        #cv2.imwrite(cv2.os.path.join(path, str(frameCounter) + ".jpg"), frame)
+        #frameCounter += 1
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break

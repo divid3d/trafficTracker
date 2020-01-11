@@ -9,9 +9,11 @@ for count in range(len(cv2.os.listdir(path))):
     height, width, layers = img.shape
     size = (width,height)
     img_array.append(img)
+    print("appended: " + str(count) + " out of " + str(len(cv2.os.listdir(path))))
 
-    out = cv2.VideoWriter(path + 'test.avi',cv2.VideoWriter_fourcc(*'DIVX'), 30, size)
-    for i in range(len(img_array)):
-        out.write(img_array[i])
-        print(str(i) + '/' + str(range(len(img_array))))
-    out.release()
+out = cv2.VideoWriter(path + 'test.avi',cv2.VideoWriter_fourcc(*'DIVX'), 30, size)
+for i in range(len(img_array)):
+    out.write(img_array[i])
+    print(str(i) + '/' + str(range(len(img_array))))
+
+out.release()
