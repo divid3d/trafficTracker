@@ -85,6 +85,8 @@ class KalmanBoxTracker(object):
         self.kf.x[:4] = convert_bbox_to_z(bbox)
         self.time_since_update = 0
         self.id = KalmanBoxTracker.count
+        self.confidence = bbox[4]
+        self.predicted_class = bbox[5]
         KalmanBoxTracker.count += 1
         self.history = []
         self.centroidHistory = []
@@ -99,14 +101,16 @@ class KalmanBoxTracker(object):
         """
         self.time_since_update = 0
         # self.history = []
-        if len(self.history) >= 50:
+        if len(self.history) >= 100:
             self.history = self.history[1:]
-        if len(self.centroidHistory) >= 50:
+        if len(self.centroidHistory) >= 100:
             self.centroidHistory = self.centroidHistory[1:]
 
         self.hits += 1
         self.hit_streak += 1
+        self.confidence = bbox[4]
         self.kf.update(convert_bbox_to_z(bbox))
+        self.predicted_class = bbox[5]
 
     def predict(self):
         """
@@ -228,4 +232,4 @@ class Sort(object):
                 self.trackers.pop(i)
         if len(ret) > 0:
             return np.concatenate(ret)
-        return np.empty((0, 5))
+        return np.empty((0, 6))

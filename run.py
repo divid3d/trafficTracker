@@ -4,6 +4,7 @@ import cv2
 import tensorflow as tf
 import tensornets as nets
 
+from non_max_suppression import non_max_suppression_fast
 from sort import *
 from utils import resize_box
 
@@ -22,7 +23,7 @@ mot_tracker = Sort(max_age=3, min_hits=3)
 with tf.Session() as sess:
     sess.run(model.pretrained())
 
-    cap = cv2.VideoCapture("C://Users//Divided//Desktop//traffic.mp4")
+    cap = cv2.VideoCapture("C://Users//Divided//Desktop//traffic_test_1.mp4")
     # change the path to your directory or to '0' for webcam
     while cap.isOpened():
         ret, frame = cap.read()
@@ -53,14 +54,19 @@ with tf.Session() as sess:
                     # setting confidence threshold
                     if boxes1[j][i][4] >= confidance:
                         count += 1
-                        detections.append(resize_box(box[:4], scaleFactorX, scaleFactorY))
+                        detection = resize_box(box[:4], scaleFactorX, scaleFactorY)
+                        detection.append(boxes1[j][i][4])
+                        detection.append(j)
+                        detections.append(detection)
             print(lab, ": ", count)
-        mot_tracker.update(np.array(detections))
+        suppressedDetections = non_max_suppression_fast(np.array(detections), 0.7)
+        mot_tracker.update(suppressedDetections)
         trackerObjects = mot_tracker.trackers
         for t in trackerObjects:
             if len(t.centroidHistory) > 0:
                 cv2.rectangle(frame, (int(t.history[-1][0][0]), int(t.history[-1][0][1])),
                               (int(t.history[-1][0][2]), int(t.history[-1][0][1] - 10)), t.color, -1)
+
                 cv2.putText(frame, str(t.id), (int(t.history[-1][0][0]), int(t.history[-1][0][1] - 1)),
                             cv2.FONT_HERSHEY_DUPLEX, 0.3,
                             (255, 255, 255),
@@ -72,6 +78,21 @@ with tf.Session() as sess:
             if len(t.history) > 0:
                 cv2.rectangle(frame, (int(t.history[-1][0][0]), int(t.history[-1][0][1])),
                               (int(t.history[-1][0][2]), int(t.history[-1][0][3])), t.color, 1)
+
+                cv2.putText(frame, "{:.2f}".format(t.confidence),
+                            (int(t.history[-1][0][0]), int(t.history[-1][0][1] + 10)),
+                            cv2.FONT_HERSHEY_DUPLEX, 0.3,
+                            (255,255,255),
+                            lineType=cv2.LINE_AA)
+
+                cv2.rectangle(frame, (int(t.history[-1][0][2])-10, int(t.history[-1][0][1])),
+                              (int(t.history[-1][0][2]), int(t.history[-1][0][1]+10)), t.color, 1)
+
+                cv2.putText(frame, classes[str(int(t.predicted_class))][0].upper(),
+                            (int(t.history[-1][0][2]) - 8, int(t.history[-1][0][1] + 9)),
+                            cv2.FONT_HERSHEY_DUPLEX, 0.3,
+                            (255, 255, 255),
+                            lineType=cv2.LINE_AA)
 
         computeTime = (time.time() - start_time)
         fps = 1 / computeTime
@@ -85,9 +106,9 @@ with tf.Session() as sess:
 
         cv2.imshow("image", frame)
 
-        # path = "C://Users//Divided//Desktop//klatki"
-        # cv2.imwrite(cv2.os.path.join(path, str(frameCounter) + ".jpg"), frame)
-        # frameCounter += 1
+        path = "C://Users//Divided//Desktop//klatki"
+        cv2.imwrite(cv2.os.path.join(path, str(frameCounter) + ".jpg"), frame)
+        frameCounter += 1
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
