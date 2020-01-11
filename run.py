@@ -18,7 +18,7 @@ classes = {'1': 'bicycle', '2': 'car', '3': 'motorcycle', '5': 'bus', '7': 'truc
 # colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
 list_of_classes = [1, 2, 3, 5, 7]
 
-mot_tracker = Sort(max_age=6, min_hits=3)
+mot_tracker = Sort(max_age=3, min_hits=3)
 with tf.Session() as sess:
     sess.run(model.pretrained())
 
@@ -59,10 +59,13 @@ with tf.Session() as sess:
         trackerObjects = mot_tracker.trackers
         for t in trackerObjects:
             if len(t.centroidHistory) > 0:
-                cv2.putText(frame, str(t.id), (int(t.history[-1][0][0]), int(t.history[-1][0][1])),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.3,
+                cv2.rectangle(frame, (int(t.history[-1][0][0]), int(t.history[-1][0][1])),
+                              (int(t.history[-1][0][2]), int(t.history[-1][0][1] - 10)), t.color, -1)
+                cv2.putText(frame, str(t.id), (int(t.history[-1][0][0]), int(t.history[-1][0][1] - 1)),
+                            cv2.FONT_HERSHEY_DUPLEX, 0.3,
                             (255, 255, 255),
                             lineType=cv2.LINE_AA)
+
                 cv2.polylines(frame, [np.asarray(t.centroidHistory).astype(int).reshape((-1, 1, 2))
                                       ], False, t.color, 1, cv2.LINE_AA)
 
@@ -70,9 +73,16 @@ with tf.Session() as sess:
                 cv2.rectangle(frame, (int(t.history[-1][0][0]), int(t.history[-1][0][1])),
                               (int(t.history[-1][0][2]), int(t.history[-1][0][3])), t.color, 1)
 
-        fps = 1 / (time.time() - start_time)
-        print("FPS: %.2f" % fps)  # to time it
+        computeTime = (time.time() - start_time)
+        fps = 1 / computeTime
+        print("Time: " + "{:.4f}".format(computeTime))
+        print("FPS: " + "{:.2f}".format(fps))  # to time it
+        cv2.putText(frame, "{:.4f}".format(computeTime) + " ms " + "{:.2f}".format(fps) + " fps", (0, 20),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7,
+                    (255, 255, 255),
+                    lineType=cv2.LINE_AA)
         # Display the output
+
         cv2.imshow("image", frame)
 
         # path = "C://Users//Divided//Desktop//klatki"
