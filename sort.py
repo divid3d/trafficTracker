@@ -1,11 +1,15 @@
 from __future__ import print_function
 
 import random
+from statistics import StatisticsError
 
 import numpy as np
+import pandas as pd
 from filterpy.kalman import KalmanFilter
 from numba import jit
 from scipy.optimize import linear_sum_assignment
+
+from utils import most_common, get_mean
 
 
 @jit
@@ -90,27 +94,45 @@ class KalmanBoxTracker(object):
         KalmanBoxTracker.count += 1
         self.history = []
         self.centroidHistory = []
+        self.accuracyHistory = []
+        self.classHistory = []
         self.hits = 0
         self.hit_streak = 0
         self.age = 0
         self.color = get_random_color()
 
-    def update(self, bbox):
+    def update(self, bbox, max_history):
         """
         Updates the state vector with observed bbox.
         """
         self.time_since_update = 0
+        self.accuracyHistory.append(bbox[4])
+        self.classHistory.append(bbox[5])
+
         # self.history = []
-        if len(self.history) >= 200:
-            self.history = self.history[1:]
-        if len(self.centroidHistory) >= 200:
-            self.centroidHistory = self.centroidHistory[1:]
+        if max_history is not None:
+            if len(self.history) >= max_history:
+                self.history = self.history[1:]
+            if len(self.centroidHistory) >= max_history:
+                self.centroidHistory = self.centroidHistory[1:]
+            if len(self.classHistory) >= max_history:
+                self.classHistory = self.classHistory[1:]
+            if len(self.accuracyHistory) >= max_history:
+                self.accuracyHistory = self.accuracyHistory[1:]
+
+        try:
+            self.predicted_class = most_common(self.classHistory)
+            indices = [i for i, x in enumerate(self.classHistory) if x == self.predicted_class]
+            self.confidence = get_mean(np.array(self.accuracyHistory)[indices])
+        except StatisticsError:
+            grouped = pd.Series(range(len(self.classHistory))).groupby(self.classHistory, sort=False).apply(list).tolist()
+
+
+
 
         self.hits += 1
         self.hit_streak += 1
-        self.confidence = bbox[4]
         self.kf.update(convert_bbox_to_z(bbox))
-        self.predicted_class = bbox[5]
 
     def predict(self):
         """
@@ -178,10 +200,11 @@ def associate_detections_to_trackers(detections, trackers, iou_threshold=0.3):
 
 
 class Sort(object):
-    def __init__(self, max_age=1, min_hits=3, max_history = None,):
+    def __init__(self, max_age=1, min_hits=3, max_history=None ):
         """
         Sets key parameters for SORT
         """
+        self.max_history = 200
         self.max_age = max_age
         self.min_hits = min_hits
         self.trackers = []
@@ -215,7 +238,7 @@ class Sort(object):
         for t, trk in enumerate(self.trackers):
             if t not in unmatched_trks:
                 d = matched[np.where(matched[:, 1] == t)[0], 0]
-                trk.update(dets[d, :][0])
+                trk.update(dets[d, :][0], self.max_history)
 
         # create and initialise new trackers for unmatched detections
         for i in unmatched_dets:

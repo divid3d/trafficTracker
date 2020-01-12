@@ -1,3 +1,6 @@
+from statistics import mode, mean
+
+
 def resize_box(box, scaleFactorX, scaleFactorY):
     return [box[0] * scaleFactorX, box[1] * scaleFactorY, box[2] * scaleFactorX, box[3] * scaleFactorY]
 
@@ -24,3 +27,11 @@ def filter_box_by_size(boxes, minWidth=20, minHeight=20, minArea=600):
         pick.append(i)
 
     return boxes[pick]
+
+
+def most_common(vals):
+    return mode(vals)
+
+
+def get_mean(vals):
+    return mean(vals)

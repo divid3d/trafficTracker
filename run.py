@@ -19,11 +19,11 @@ classes = {'1': 'bicycle', '2': 'car', '3': 'motorcycle', '5': 'bus', '7': 'truc
 # colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
 list_of_classes = [1, 2, 3, 5, 7]
 
-mot_tracker = Sort(max_age=10, min_hits=4)
+mot_tracker = Sort(max_age=10, min_hits=4, max_history=300)
 with tf.Session() as sess:
     sess.run(model.pretrained())
 
-    cap = cv2.VideoCapture("C://Users//Divided//Desktop//traffic.mp4")
+    cap = cv2.VideoCapture("C://Users//Divided//Desktop//traffic_detection.mp4")
     # change the path to your directory or to '0' for webcam
     while cap.isOpened():
         ret, frame = cap.read()
@@ -60,7 +60,7 @@ with tf.Session() as sess:
                         detections.append(detection)
             print(lab, ": ", count)
 
-        filtered = filter_box_by_size(np.array(detections))
+        filtered = filter_box_by_size(np.array(detections), minWidth=10, minHeight=10, minArea=150)
         suppressedDetections = non_max_suppression_fast(filtered, 0.4)
         mot_tracker.update(suppressedDetections)
         trackerObjects = mot_tracker.trackers
@@ -80,6 +80,7 @@ with tf.Session() as sess:
             if len(t.history) > 0:
                 cv2.rectangle(frame, (int(t.history[-1][0][0]), int(t.history[-1][0][1])),
                               (int(t.history[-1][0][2]), int(t.history[-1][0][3])), t.color, 1)
+
 
                 cv2.putText(frame, "{:.2f}".format(t.confidence),
                             (int(t.history[-1][0][0]), int(t.history[-1][0][1] + 10)),
