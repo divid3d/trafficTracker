@@ -104,9 +104,9 @@ with tf.Session() as sess:
 
         computeTime = (time.time() - start_time)
         fps = 1 / computeTime
-        print("Time: " + "{:.4f}".format(computeTime))
+        print("Time: " + "{:3.f}".format(computeTime))
         print("FPS: " + "{:.2f}".format(fps))  # to time it
-        cv2.putText(frame, "{:.4f}".format(computeTime) + " ms " + "{:.2f}".format(fps) + " fps", (0, 20),
+        cv2.putText(frame,str(frameWidth)+"x"+str(frameHeight) + " " + "{:3.}".format(computeTime) + " ms " + "{:.2f}".format(fps) + " fps" + " frame " + str(frameCounter), (0, 20),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7,
                     (255, 255, 255),
                     lineType=cv2.LINE_AA)
