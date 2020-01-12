@@ -19,11 +19,11 @@ classes = {'1': 'bicycle', '2': 'car', '3': 'motorcycle', '5': 'bus', '7': 'truc
 # colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
 list_of_classes = [1, 2, 3, 5, 7]
 
-mot_tracker = Sort(max_age=10, min_hits=4, max_history=300)
+mot_tracker = Sort(max_age=30, min_hits=1, max_history=300)
 with tf.Session() as sess:
     sess.run(model.pretrained())
 
-    cap = cv2.VideoCapture("C://Users//Divided//Desktop//traffic_detection.mp4")
+    cap = cv2.VideoCapture("C://Users//Divided//Desktop//traffic_test_1.mp4")
     # change the path to your directory or to '0' for webcam
     while cap.isOpened():
         ret, frame = cap.read()
@@ -77,19 +77,24 @@ with tf.Session() as sess:
                 cv2.polylines(frame, [np.asarray(t.centroidHistory).astype(int).reshape((-1, 1, 2))
                                       ], False, t.color, 1, cv2.LINE_AA)
 
+                if len(t.centroidHistory) > 1:
+                    cv2.arrowedLine(frame,
+                                    (int(t.centroidHistory[-2][0]), int(t.centroidHistory[-2][1])),
+                                    (int(t.centroidHistory[-1][0]), int(t.centroidHistory[-1][1])),
+                                    t.color, 1, cv2.LINE_AA, 0, 1)
+
             if len(t.history) > 0:
                 cv2.rectangle(frame, (int(t.history[-1][0][0]), int(t.history[-1][0][1])),
                               (int(t.history[-1][0][2]), int(t.history[-1][0][3])), t.color, 1)
 
-
                 cv2.putText(frame, "{:.2f}".format(t.confidence),
                             (int(t.history[-1][0][0]), int(t.history[-1][0][1] + 10)),
                             cv2.FONT_HERSHEY_DUPLEX, 0.3,
-                            (255,255,255),
+                            (255, 255, 255),
                             lineType=cv2.LINE_AA)
 
-                cv2.rectangle(frame, (int(t.history[-1][0][2])-10, int(t.history[-1][0][1])),
-                              (int(t.history[-1][0][2]), int(t.history[-1][0][1]+10)), t.color, 1)
+                cv2.rectangle(frame, (int(t.history[-1][0][2]) - 10, int(t.history[-1][0][1])),
+                              (int(t.history[-1][0][2]), int(t.history[-1][0][1] + 10)), t.color, 1)
 
                 cv2.putText(frame, classes[str(int(t.predicted_class))][0].upper(),
                             (int(t.history[-1][0][2]) - 8, int(t.history[-1][0][1] + 9)),
@@ -109,9 +114,9 @@ with tf.Session() as sess:
 
         cv2.imshow("image", frame)
 
-        #path = "C://Users//Divided//Desktop//klatki"
-        #cv2.imwrite(cv2.os.path.join(path, str(frameCounter) + ".jpg"), frame)
-        #frameCounter += 1
+        # path = "C://Users//Divided//Desktop//klatki"
+        # cv2.imwrite(cv2.os.path.join(path, str(frameCounter) + ".jpg"), frame)
+        # frameCounter += 1
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
