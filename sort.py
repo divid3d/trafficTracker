@@ -101,9 +101,9 @@ class KalmanBoxTracker(object):
         """
         self.time_since_update = 0
         # self.history = []
-        if len(self.history) >= 100:
+        if len(self.history) >= 200:
             self.history = self.history[1:]
-        if len(self.centroidHistory) >= 100:
+        if len(self.centroidHistory) >= 200:
             self.centroidHistory = self.centroidHistory[1:]
 
         self.hits += 1

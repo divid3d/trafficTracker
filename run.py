@@ -6,7 +6,7 @@ import tensornets as nets
 
 from non_max_suppression import non_max_suppression_fast
 from sort import *
-from utils import resize_box
+from utils import resize_box, filter_box_by_size
 
 resizedX, resizedY = 416, 416
 confidance = .4
@@ -19,11 +19,11 @@ classes = {'1': 'bicycle', '2': 'car', '3': 'motorcycle', '5': 'bus', '7': 'truc
 # colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
 list_of_classes = [1, 2, 3, 5, 7]
 
-mot_tracker = Sort(max_age=3, min_hits=3)
+mot_tracker = Sort(max_age=10, min_hits=4)
 with tf.Session() as sess:
     sess.run(model.pretrained())
 
-    cap = cv2.VideoCapture("C://Users//Divided//Desktop//traffic_test_1.mp4")
+    cap = cv2.VideoCapture("C://Users//Divided//Desktop//traffic.mp4")
     # change the path to your directory or to '0' for webcam
     while cap.isOpened():
         ret, frame = cap.read()
@@ -59,7 +59,9 @@ with tf.Session() as sess:
                         detection.append(j)
                         detections.append(detection)
             print(lab, ": ", count)
-        suppressedDetections = non_max_suppression_fast(np.array(detections), 0.7)
+
+        filtered = filter_box_by_size(np.array(detections))
+        suppressedDetections = non_max_suppression_fast(filtered, 0.4)
         mot_tracker.update(suppressedDetections)
         trackerObjects = mot_tracker.trackers
         for t in trackerObjects:
